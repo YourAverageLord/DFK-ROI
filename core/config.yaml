@@ -1,0 +1,8 @@
+discord:
+  # Put your discord ID here so the webhook may tag you for notifs.
+  id: "discord id # here"
+  webhooks:
+    roi report: "webhook here"
+
+  
+  
