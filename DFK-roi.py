@@ -23,9 +23,6 @@ parser = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter)
 
 parser.add_argument(
-    '-cr', '--custom-rpc', action="store_true", default=None, dest='custom_rpc', 
-    help="Use a custom RPC defined in config.yaml")
-parser.add_argument(
     '-a', '--address', action="store", default=None, dest='address', 
     required=True,
     help="Specify the 0x address you want to get an ROI report for.")
