@@ -239,7 +239,7 @@ async def process_quest_receipts(tx_receipts, quest_contracts):
     for result in quest_results:
         for hero_id, values in result.items():
             if hero_id not in total_quest_rewards:
-                total_quest_rewards[hero_id] = {'rewards': {}, 'xpEarned': 0.0, 'skillUp': 0.0}
+                total_quest_rewards[hero_id] = {'rewards': {}, 'xpEarned': 0.0, 'skillUp': 0.0, "total_in_jewel": 0.0}
 
             for item, qty in values["rewards"].items():
                 if item not in total_quest_rewards[hero_id]["rewards"]:

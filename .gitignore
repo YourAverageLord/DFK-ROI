@@ -105,6 +105,7 @@ celerybeat.pid
 logs/
 output/
 core/config.yaml
+*.csv
 
 # Environment stuff
 .env

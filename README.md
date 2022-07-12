@@ -26,17 +26,20 @@ python3 -m install -r requirements.txt
 python3 DFK-roi.py -h
 ```
 ```
-usage: python3 DFK-roi.py [-h] -a ADDRESS [--rentals] [--quest-rewards]
+usage: python3 DFK-roi.py [-h] -a ADDRESS [--rentals] [--quest-rewards {24h,lifetime}] [--file FILE] [-cr] [--test]
 
 DFK ROI!
 
 optional arguments:
   -h, --help            show this help message and exit
   -a ADDRESS, --address ADDRESS
-                        Specify the 0x address you want to get an ROI report
-                        for.
+                        Specify the 0x address you want to get an ROI report for.
   --rentals             Query tavern rental profits
-  --quest-rewards       Query quest reward profits
+  --quest-rewards {24h,lifetime}
+                        Query quest reward profits
+  --file FILE           Read from file instead of fetching from the blockchain
+  -cr, --custom-rpc     Use custom RPCs defined in config.yaml
+  --test                Run the testing code
 ```
 <br>
 
@@ -50,8 +53,12 @@ python3 DFK-roi.py --rentals -a "0xaddresshere"
 ---
 ### Get lifetime quest rewards for all heroes you've ever had in your wallet.
 ```bash
-python3 DFK-roi.py --quest-rewards -a "0xaddresshere"
+# Get quest rewards from last 24hrs
+python3 DFK-roi.py --quest-rewards 24h -a "0xaddresshere"
+
+# Get lifetime quest rewards
+python3 DFK-roi.py --quest-rewards lifetime -a "0xaddresshere"
 ```
 
-This will save a file to `output/quest_rewards.json` that contains a list of all your heroes and all the quest rewards they've ever recieved while in your specified wallet.
+This will save a file to `output/[24h|lifetime]_quest_rewards.json` that contains a list of all your heroes and all the quest rewards they've ever recieved while in your specified wallet.
 ![image](https://user-images.githubusercontent.com/99366718/175789007-ebd4fd59-c88f-482e-a55e-8d2171397b32.png)

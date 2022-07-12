@@ -2,3 +2,4 @@ python-dotenv
 pyyaml
 web3
 debugpy
+pandas
