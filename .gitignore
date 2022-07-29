@@ -102,8 +102,8 @@ celerybeat.pid
 *.sage.py
 
 # other stuff
-logs/
-output/
+logs/*
+output/*
 core/config.yaml
 *.csv
 

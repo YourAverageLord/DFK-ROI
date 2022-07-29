@@ -11,20 +11,15 @@ from web3 import Web3
 from datetime import datetime
 from datetime import timedelta
 
-import core.dex.erc20 as tokens
-import core.dex.item_pools as item_pools
-
-import core.dex.uniswap_v2_pair as pair
-import core.dex.uniswap_v2_router as trader
+import core.dex.utils.utils as dex_utils
 
 from core.globals import *
 from core.funcs.funcs import load_config, set_up_logger, handle_errors
 from core.funcs.async_funcs import get_all_user_tx, sort_Transactions, fetch_raw_tx_receipts, raw_2_web3_receipt, process_quest_receipts
 from core.API.funcs import get_hero_rental_history
 
-
-from core.quest.contracts import QUEST_V1_CONTRACT_ADDRESS, QUEST_V2_CONTRACT_ADDRESS 
-from core.quest.abis import QUEST_V1_ABI, QUEST_V2_ABI
+from core.quest.contracts import *
+from core.quest.abis import *
 
 
 parser = argparse.ArgumentParser(
@@ -40,11 +35,11 @@ parser.add_argument(
     '--rentals', action="store_true", default=None, dest='rentals', 
     help="Query tavern rental profits")
 parser.add_argument(
-    '--quest-rewards', action="store", default=None, dest='quest_rewards', 
+    '--quest-rewards', action="store", default="24h", dest='quest_rewards', 
     choices=["24h", "lifetime"], help="Query quest reward profits")
 parser.add_argument(
-    '--file', action="store", default=None, dest='file', 
-    help="Read from file instead of fetching from the blockchain")
+    '--file', action="store_true", default=False, dest='file', 
+    help="Read from stored file instead of fetching from the blockchain")
 parser.add_argument(
     '-cr', '--custom-rpc', action="store_true", default=None, dest='custom_rpc', 
     help="Use custom RPCs defined in config.yaml")
@@ -59,10 +54,10 @@ pargs = parser.parse_args()
 logger = set_up_logger("ROI", False)
 
 CONFIG = load_config()
-webhook = CONFIG.get("discord").get("webhooks").get("roi report")
-if "https://" not in webhook:
-    logger.critical("Need webhook URL! Plz configure in core/config.yaml. See README for info")
-    exit()
+webhook = CONFIG.get("discord", {}).get("webhooks", {}).get("roi report")
+# if "https://" not in webhook:
+#     logger.critical("Need webhook URL! Plz configure in core/config.yaml. See README for info")
+#     exit()
 
 possible_rpcs = [
     "https://api.harmony.one",
@@ -70,7 +65,8 @@ possible_rpcs = [
     "https://api.s0.t.hmny.io",
     ]
 
-custom_rpcs = CONFIG.get('custom rpcs', [])
+if pargs.custom_rpc:
+    possible_rpcs = CONFIG.get('custom rpcs', [])
 
 rpc_server = random.choice(possible_rpcs)
 w3 = Web3(Web3.HTTPProvider(rpc_server))
@@ -79,7 +75,6 @@ user_address = pargs.address
 
 main_start = time.perf_counter()
 try:
-    
     # Gen0 rentals ROI
     if pargs.rentals:
         total, msg = 0.00, ""
@@ -96,33 +91,43 @@ try:
         
         msg = f"**Rental Report**\n```{msg}```\nTotal jewel: {total}"
         logger.info(msg)
+        exit()
     
 
     # Quest rewards ROI
     if pargs.quest_rewards:
+        quest_rewards_outfile = f"{OUT_DIR}/{pargs.quest_rewards}_quest_rewards.json"
+        realm = "serendale"
+
+        V1_CONTRACT_ADDRESS = V1_SERENDALE_CONTRACT_HEX
+        if realm == "serendale":
+            V2_CONTRACT_ADDRESS = V2_SERENDALE_CONTRACT_HEX
+        else:
+            V2_CONTRACT_ADDRESS = V2_CRYSTALVALE_CONTRACT_HEX
+        
         if pargs.file:
             # read from saved quest rewards file
-            with open(pargs.file, "r") as inf:
+            with open(quest_rewards_outfile, "r") as inf:
                 quest_rewards = json.load(inf)
         else:
             quest_contracts_one = {
-                "one12yqt6vdcygm3zz9q7c7uldjefwv3n6h5trltq4": {
-                    "hex": QUEST_V1_CONTRACT_ADDRESS,
-                    "contract": w3.eth.contract(
-                        w3.toChecksumAddress(QUEST_V1_CONTRACT_ADDRESS), abi=QUEST_V1_ABI)
+                V1_SERENDALE_CONTRACT_ONE: {
+                    "hex": V1_CONTRACT_ADDRESS,
+                    "contract": w3.eth.contract(w3.toChecksumAddress(
+                        V1_CONTRACT_ADDRESS), abi=QUEST_V1_ABI)
                     },
-                "one142dz388q2e0y6e2gucayg8nupp8xk5hk62auhh": {
-                    "hex": QUEST_V2_CONTRACT_ADDRESS,
-                    "contract": w3.eth.contract(
-                        w3.toChecksumAddress(QUEST_V2_CONTRACT_ADDRESS), abi=QUEST_V2_ABI)
+                V2_SERENDALE_CONTRACT_ONE: {
+                    "hex": V2_CONTRACT_ADDRESS,
+                    "contract": w3.eth.contract(w3.toChecksumAddress(
+                        V2_CONTRACT_ADDRESS), abi=QUEST_V2_ABI)
                     }
                 }
 
             quest_contracts_hex = {
-                QUEST_V1_CONTRACT_ADDRESS: w3.eth.contract(
-                    w3.toChecksumAddress(QUEST_V1_CONTRACT_ADDRESS), abi=QUEST_V1_ABI),
-                QUEST_V2_CONTRACT_ADDRESS: w3.eth.contract(
-                    w3.toChecksumAddress(QUEST_V2_CONTRACT_ADDRESS), abi=QUEST_V2_ABI)
+                V1_CONTRACT_ADDRESS: w3.eth.contract(
+                    w3.toChecksumAddress(V1_CONTRACT_ADDRESS), abi=QUEST_V1_ABI),
+                V2_CONTRACT_ADDRESS: w3.eth.contract(
+                    w3.toChecksumAddress(V2_CONTRACT_ADDRESS), abi=QUEST_V2_ABI)
                 }
 
             # get all user's TX
@@ -130,8 +135,8 @@ try:
             logger.info(f"Getting all TX...")
             page_size = 100
             paginated_tx = asyncio.run(get_all_user_tx(page_size, user_address, possible_rpcs, logger))
-            all_tx_list = [x for tx_list in paginated_tx for x in tx_list]
-            logger.info(f"Fetched {len(paginated_tx) * page_size} TX in {time.perf_counter() - start} secs")
+            all_tx_list = [tx for tx_list in paginated_tx for tx in tx_list]
+            logger.info(f"Fetched {len(all_tx_list)} TX in {time.perf_counter() - start} secs")
 
             # Extract all the ones that are questComplete
             start = time.perf_counter()
@@ -169,106 +174,38 @@ try:
             # Process quest receipts
             start = time.perf_counter()
             logger.info(f"Processing quest Receipts...")
-            quest_rewards = asyncio.run(process_quest_receipts(web3_tx_receipts, quest_contracts_hex))
+            quest_rewards = asyncio.run(process_quest_receipts(web3_tx_receipts, quest_contracts_hex, realm))
             logger.info(f"Processed rewards for {len(quest_rewards)} heroes in {time.perf_counter() - start} secs")
 
-            quest_rewards_outfile = f"{OUT_DIR}/{pargs.quest_rewards}_quest_rewards.json"
-            with open(quest_rewards_outfile, "w") as outf:
-                json.dump(quest_rewards, outf)
-            logger.info(f"Saved quest rewards to {quest_rewards_outfile}")
-        
-        # Get prices for items in JEWEL via WJEWEL/USDC
-        jewel_price = 0
-        url = "https://api.dexscreener.com/latest/dex/pairs/avalanchedfk/0xcf329b34049033de26e4449aebcb41f1992724d3"
-        while jewel_price == 0:
-            try:
-                resp = requests.get(url)
-                
-                if resp.status_code != 200:
-                    continue
+        # for each hero, get quest item prices in jewel for the amount
+        logger.info("Getting all item prices in jewel. This may take a minute or 3...")
+        item_prices = dex_utils.get_item_prices(user_address, realm, possible_rpcs, logger)
 
-                jewel_price = float(resp.json()["pair"]["priceNative"])
-                logger.info(f"Fetched JEWEL price: {jewel_price} USD")
-
-            except Exception as e:
-                error_msg = handle_errors(e)
-                logger.error(f"{error_msg}")
-            
-        success = False
-        while not success:
-            try:
-                for x, y in item_pools.ITEM_POOLS.items():
-                    url = f'https://api.dexscreener.com/latest/dex/pairs/{y["chain"]}/{y["pairAddress"]}'
-                    resp = requests.get(url)
-                    
-                    if resp.status_code != 200:
-                        continue
-                    
-                    if resp.json()["pair"]["quoteToken"]["symbol"] == "JEWEL":
-                        item_pools.ITEM_POOLS[x]["item_price_in_jewel"] = float(resp.json()["pair"]["priceNative"])
-                    else:
-                        item_pools.ITEM_POOLS[x]["item_price_in_jewel"] = float(resp.json()["pair"]["priceUsd"]) / jewel_price
-
-                    logger.info(f'Fetched {x} price: {item_pools.ITEM_POOLS[x]["item_price_in_jewel"]} jewel')
-                
-                success = True
-
-            except Exception as e:
-                error_msg = handle_errors(e)
-                logger.error(f"{error_msg}")
-        
-        # After quest_rewards is fetched, total it up
-        total_jewel = 0
-        total_gold = 0
-        total_shvas_runes = 0
-        for hero, rewards in quest_rewards.items():
-            for item, amount in rewards["rewards"].items():
-                if item != "JEWEL":
-                    if item == "NOTHING":
-                        continue
-                    for x, y in item_pools.ITEM_POOLS.items():
-                        if item in y["items"] and "JEWEL" in y["items"]:
-                            quest_rewards[hero]["total_in_jewel"] += amount * y["item_price_in_jewel"]
+        all_total_in_jewel = 0
+        for hero_id, rewards in quest_rewards.items():
+            for rew, amount in rewards["rewards"].items():
+                if rew == "JEWEL":
+                    quest_rewards[hero_id]["total_in_jewel"] += amount
                 else:
-                    quest_rewards[hero]["total_in_jewel"] += amount
+                    quest_rewards[hero_id]["total_in_jewel"] += float(amount) * float(item_prices.get(rew, 0.0))
 
-            total_jewel += rewards["total_in_jewel"]
-            total_gold += rewards["rewards"].get("DFKGOLD", 0)
-            total_shvas_runes += rewards["rewards"].get("DFKSHVAS", 0)
+            all_total_in_jewel += quest_rewards[hero_id]["total_in_jewel"]
+
+        # store data to JSON file
+        with open(quest_rewards_outfile, "w") as outf:
+            json.dump(quest_rewards, outf)
+        logger.info(f"Saved quest rewards to {quest_rewards_outfile}")
         
-        msg = textwrap.dedent(f"Totals:\n\t\
-            Total of all items in JEWEL: {total_jewel}\n\t\
-            Total GOLD recieved: {total_gold}\n\t\
-            Total SHVAS RUNES recieved: {total_shvas_runes}")
-
-        logger.info(msg)
-        print()
-
+        print(f"Total price of all items in JEWEL for {pargs.quest_rewards} time period: {all_total_in_jewel}")
+        exit()
 
     if pargs.test:
-        # dex screener API jewel/bloater
-        # https://api.dexscreener.com/latest/dex/pairs/harmony/0xc41235202daa55064d69981b6de4b7947868bb45
-        print()
+        print("test")
+        exit()
         
-        # token_address = tokens.symbol2address('JEWEL')
-        # name = tokens.name(token_address, rpc_server)
-        # symbol = tokens.symbol(token_address, rpc_server)
-        # decimal = tokens.decimals(token_address, rpc_server)
-        # balance = tokens.balance_of(user_address, token_address, rpc_server)
-        # balance = tokens.wei2eth(w3, balance)
-
-        # #JEWEL/stam pot pair
-        # JEWEL_DFKRGWD_addy = "0x2e7276584897a099d07b118fad51ad8c169f01ee"
-        # JEWEL_DFKRGWD_Pair = pair.UniswapV2Pair(JEWEL_DFKRGWD_addy, rpc_server, logger)
-        # pair_balance = JEWEL_DFKRGWD_Pair.balance_of(user_address)
-        # f"{0:.10f}".format(pair_balance)
-        # # Expected amount of jewel when providing x of stampot
-        # amount_in_jewel = JEWEL_DFKRGWD_Pair.expected_amount1(1)
-        print()
-
+        
 except Exception as e:
     error_msg = handle_errors(e)
     logger.error(error_msg)
 
 logger.info(f"Processed everything in {time.perf_counter() - main_start} secs")
-print()

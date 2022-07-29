@@ -1,6 +1,6 @@
 from web3 import Web3
 from .uniswap_v2_pair import UniswapV2Pair
-import core.dex.utils.utils as garden_utils
+from .utils.utils import human_readable_user_info
 
 CONTRACT_ADDRESS = '0xDB30643c71aC9e2122cA0341ED77d09D5f99F924'
 
@@ -180,6 +180,6 @@ class Garden:
             return None
 
         if type(user_info) == tuple or type(user_info) == list:
-            user_info = garden_utils.human_readable_user_info(user_info)
+            user_info = human_readable_user_info(user_info)
 
         return user_info['amount']

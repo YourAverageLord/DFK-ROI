@@ -4,7 +4,7 @@ https://docs.uniswap.org/protocol/V2/reference/smart-contracts/pair
 """
 
 from web3 import Web3
-from .utils.utils import swap_expected_amount1
+# from .utils.utils import swap_expected_amount1
 
 ABI = '''
     [
@@ -215,10 +215,10 @@ class UniswapV2Pair:
     def price_1_cumulative_last(self):
         return price_1_cumulative_last(self.address, self.rpc_address)
 
-    def expected_amount1(self, amount0):
-        reserves = get_reserves(self.address, self.rpc_address)
-        return swap_expected_amount1(reserves[0], reserves[1], amount0)
+    # def expected_amount1(self, amount0):
+    #     reserves = get_reserves(self.address, self.rpc_address)
+    #     return swap_expected_amount1(reserves[0], reserves[1], amount0)
 
-    def expected_amount0(self, amount1):
-        reserves = get_reserves(self.address, self.rpc_address)
-        return swap_expected_amount1(reserves[1], reserves[0], amount1)
+    # def expected_amount0(self, amount1):
+    #     reserves = get_reserves(self.address, self.rpc_address)
+    #     return swap_expected_amount1(reserves[1], reserves[0], amount1)
