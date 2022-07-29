@@ -13,7 +13,7 @@ from datetime import timedelta
 import core.dex.utils.utils as dex_utils
 
 from core.globals import *
-from core.funcs.funcs import load_config, set_up_logger, handle_errors
+from core.funcs.funcs import *
 from core.funcs.async_funcs import get_all_user_tx, sort_Transactions, fetch_raw_tx_receipts, raw_2_web3_receipt, process_quest_receipts
 from core.API.funcs import get_hero_rental_history
 
@@ -74,6 +74,8 @@ user_address = pargs.address
 
 main_start = time.perf_counter()
 try:
+    create_folder_structure()
+
     # Gen0 rentals ROI
     if pargs.rentals:
         total, msg = 0.00, ""
@@ -96,19 +98,24 @@ try:
     # Quest rewards ROI
     if pargs.quest_rewards:
         quest_rewards_outfile = f"{OUT_DIR}/{pargs.quest_rewards}_quest_rewards.json"
-        realm = "serendale"
-
-        V1_CONTRACT_ADDRESS = V1_SERENDALE_CONTRACT_HEX
-        if realm == "serendale":
-            V2_CONTRACT_ADDRESS = V2_SERENDALE_CONTRACT_HEX
-        else:
-            V2_CONTRACT_ADDRESS = V2_CRYSTALVALE_CONTRACT_HEX
         
         if pargs.file:
+            if not os.path.exists(quest_rewards_outfile):
+                logger.critical(f"Couldn't find {quest_rewards_outfile}!")
+                exit()
+
             # read from saved quest rewards file
             with open(quest_rewards_outfile, "r") as inf:
                 quest_rewards = json.load(inf)
         else:
+            realm = "serendale"
+            V1_CONTRACT_ADDRESS = V1_SERENDALE_CONTRACT_HEX
+
+            if realm == "serendale":
+                V2_CONTRACT_ADDRESS = V2_SERENDALE_CONTRACT_HEX
+            else:
+                V2_CONTRACT_ADDRESS = V2_CRYSTALVALE_CONTRACT_HEX
+
             quest_contracts_one = {
                 V1_SERENDALE_CONTRACT_ONE: {
                     "hex": V1_CONTRACT_ADDRESS,

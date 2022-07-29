@@ -3,13 +3,12 @@ import textwrap
 import requests
 import warnings
 import yaml
-import os
 import logging
 import debugpy
 
 from datetime import datetime
 
-from core.globals import SCRIPT_DIR
+from core.globals import *
 
 warnings.filterwarnings("ignore")
 
@@ -36,6 +35,11 @@ def load_config():
         CONFIG = yaml.load(c, Loader=yaml.FullLoader)
     
     return CONFIG
+
+
+def create_folder_structure():
+    if not os.path.exists(OUT_DIR):
+        os.makedirs(OUT_DIR)
 
 
 def wait_for_debugger(webhook):
