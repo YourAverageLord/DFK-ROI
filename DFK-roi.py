@@ -185,7 +185,7 @@ try:
 
         # for each hero, get quest item prices in jewel for the amount
         logger.info("Getting all item prices in jewel. This may take a minute or 3...")
-        item_prices = dex_utils.get_item_prices(user_address, realm, possible_rpcs, logger)
+        item_prices = dex_utils.get_item_prices(realm, possible_rpcs, logger)
 
         all_total_in_jewel = 0
         for hero_id, rewards in quest_rewards.items():

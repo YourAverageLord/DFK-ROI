@@ -46,7 +46,7 @@ def human_readable_user_info(user_info):
     return human_readable
 
 
-def get_item_prices(user_address, realm, possible_rpcs, logger):
+def get_item_prices(realm, possible_rpcs, logger):
     ''' Get item prices non-async'''
 
     item_prices = {}
@@ -67,7 +67,6 @@ def get_item_prices(user_address, realm, possible_rpcs, logger):
                     w3 = Web3(Web3.HTTPProvider(rpc_server))
 
                     token_address_2 = erc20.symbol2address(item[1], realm)
-                    balance_2 = erc20.balance_of(user_address, token_address_2, rpc_server)
                     pair_address = market_place_factory.get_pair(token_address_1, token_address_2, rpc_server)
                     
                     Pair = pool.UniswapV2Pair(pair_address, rpc_server, logger)
